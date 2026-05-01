@@ -1,0 +1,60 @@
+# ─── APIGuard Enterprise ─────────────────────
+# Environment variables
+.env
+.env.*
+
+# ─── Python ──────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# ─── Virtual Environment ────────────────────
+venv/
+.venv/
+env/
+
+# ─── IDE ─────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Database ────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Reports (generated) ────────────────────
+apiguard_report.html
+apiguard_report.pdf
+*.pdf
+
+# ─── OS ──────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Testing ─────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# ─── Node / Frontend ────────────────────────
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# ─── Misc ────────────────────────────────────
+*.log
+*.bak
+*.tmp

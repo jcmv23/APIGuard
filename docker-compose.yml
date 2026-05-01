@@ -1,0 +1,89 @@
+# APIGuard Enterprise v4.0 — Docker Compose
+# ============================================
+# Full stack: API + Frontend + PostgreSQL + Redis
+#
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose logs -f api        # Watch API logs
+#   docker compose down               # Stop all services
+#
+# For SQLite-only (no PostgreSQL):
+#   docker compose up api frontend
+
+services:
+  # ── PostgreSQL ────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: apiguard-db
+    environment:
+      POSTGRES_DB: apiguard
+      POSTGRES_USER: apiguard
+      POSTGRES_PASSWORD: ${APIGUARD_PG_PASSWORD:-apiguard_secure_2026}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init_postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apiguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Backend API ───────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: apiguard-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - apiguard-data:/data
+    environment:
+      - APIGUARD_ENV=production
+      - APIGUARD_DEBUG=false
+      - DATABASE_URL=postgresql://apiguard:${APIGUARD_PG_PASSWORD:-apiguard_secure_2026}@postgres:5432/apiguard
+      - APIGUARD_JWT_SECRET=${APIGUARD_JWT_SECRET:-change-me-in-production}
+      - APIGUARD_CORS_ORIGINS=${APIGUARD_CORS_ORIGINS:-http://localhost:3000}
+      # Webhook config (optional)
+      - APIGUARD_WEBHOOK_SLACK=${APIGUARD_WEBHOOK_SLACK:-}
+      - APIGUARD_WEBHOOK_DISCORD=${APIGUARD_WEBHOOK_DISCORD:-}
+      - APIGUARD_JIRA_URL=${APIGUARD_JIRA_URL:-}
+      - APIGUARD_JIRA_EMAIL=${APIGUARD_JIRA_EMAIL:-}
+      - APIGUARD_JIRA_TOKEN=${APIGUARD_JIRA_TOKEN:-}
+      - APIGUARD_GITHUB_REPO=${APIGUARD_GITHUB_REPO:-}
+      - APIGUARD_GITHUB_TOKEN=${APIGUARD_GITHUB_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── Frontend ──────────────────────────────────
+  frontend:
+    build:
+      context: ./apiguard-frontend
+      dockerfile: Dockerfile
+    container_name: apiguard-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
+  apiguard-data:
+    driver: local
